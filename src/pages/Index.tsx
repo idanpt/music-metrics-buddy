@@ -5,6 +5,7 @@ import { FeatureRadar } from "@/components/FeatureRadar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { MusicIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const mockGenres = [
   { name: "Pop", count: 45 },
@@ -34,11 +35,22 @@ const mockFeatures = {
 const Index = () => {
   const { toast } = useToast();
 
-  const handleSpotifyLogin = () => {
-    toast({
-      title: "Spotify Integration",
-      description: "Coming soon! This will connect to the Spotify API.",
-    });
+  const handleSpotifyLogin = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("spotify-auth");
+      
+      if (error) throw error;
+      
+      // Redirect to Spotify's authorization page
+      window.location.href = data.url;
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to Spotify. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
