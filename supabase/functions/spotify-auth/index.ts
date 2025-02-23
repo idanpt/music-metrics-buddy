@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +34,14 @@ serve(async (req) => {
       throw new Error('Missing Spotify credentials')
     }
 
+    // Get the origin for the redirect URI
+    const origin = req.headers.get('origin')
+    console.log('Request origin:', origin)
+    
+    // Construct the exact redirect URI
+    const redirectUri = `${origin}/callback`
+    console.log('Redirect URI:', redirectUri)
+
     if (!code) {
       // Generate the Spotify authorization URL
       const scopes = [
@@ -47,14 +54,18 @@ serve(async (req) => {
       const authUrl = new URL('https://accounts.spotify.com/authorize')
       authUrl.searchParams.append('client_id', SPOTIFY_CLIENT_ID)
       authUrl.searchParams.append('response_type', 'code')
-      authUrl.searchParams.append('redirect_uri', `${req.headers.get('origin')}/callback`)
+      authUrl.searchParams.append('redirect_uri', redirectUri)
       authUrl.searchParams.append('scope', scopes.join(' '))
+
+      console.log('Generated auth URL:', authUrl.toString())
 
       return new Response(
         JSON.stringify({ url: authUrl.toString() }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('Received code, exchanging for token...')
 
     // Exchange the code for an access token
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
@@ -66,7 +77,7 @@ serve(async (req) => {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
-        redirect_uri: `${req.headers.get('origin')}/callback`,
+        redirect_uri: redirectUri,
       }),
     })
 
@@ -77,6 +88,7 @@ serve(async (req) => {
     }
 
     const tokenData: SpotifyTokenResponse = await tokenResponse.json()
+    console.log('Successfully obtained token')
 
     return new Response(
       JSON.stringify(tokenData),
