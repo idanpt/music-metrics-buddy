@@ -22,19 +22,18 @@ serve(async (req) => {
   }
 
   try {
-    const { searchParams } = new URL(req.url)
-    const code = searchParams.get('code')
+    const { code } = await req.json().catch(() => ({}))
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    )
+    // Get environment variables
+    const SPOTIFY_CLIENT_ID = Deno.env.get('SPOTIFY_CLIENT_ID')
+    const SPOTIFY_CLIENT_SECRET = Deno.env.get('SPOTIFY_CLIENT_SECRET')
+    
+    console.log('Client ID available:', !!SPOTIFY_CLIENT_ID)
+    console.log('Client Secret available:', !!SPOTIFY_CLIENT_SECRET)
 
-    // Get Spotify credentials from Supabase secrets
-    const { data: { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } } = await supabaseClient.functions.invoke('get-secrets', {
-      body: { keys: ['SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET'] }
-    })
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+      throw new Error('Missing Spotify credentials')
+    }
 
     if (!code) {
       // Generate the Spotify authorization URL
@@ -71,6 +70,12 @@ serve(async (req) => {
       }),
     })
 
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.text()
+      console.error('Spotify token error:', errorData)
+      throw new Error('Failed to get Spotify access token')
+    }
+
     const tokenData: SpotifyTokenResponse = await tokenResponse.json()
 
     return new Response(
@@ -78,7 +83,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
