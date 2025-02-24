@@ -42,7 +42,9 @@ const Index = () => {
 
   const handleSpotifyLogin = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("spotify-auth");
+      const { data, error } = await supabase.functions.invoke("spotify-auth", {
+        body: { origin: window.location.origin },
+      });
       
       if (error) throw error;
       

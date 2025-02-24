@@ -34,13 +34,18 @@ serve(async (req) => {
       throw new Error('Missing Spotify credentials')
     }
 
-    // Get the origin for the redirect URI
-    const origin = req.headers.get('origin')
-    console.log('Request origin:', origin)
-    
+    // Get the request URL to determine the environment
+    const url = new URL(req.url);
+    const origin = url.searchParams.get('origin') || req.headers.get('origin');
+    console.log('Origin from request:', origin);
+
+    if (!origin) {
+      throw new Error('No origin provided');
+    }
+
     // Construct the exact redirect URI
-    const redirectUri = `${origin}/callback`
-    console.log('Redirect URI:', redirectUri)
+    const redirectUri = `${origin}/callback`;
+    console.log('Using redirect URI:', redirectUri);
 
     if (!code) {
       // Generate the Spotify authorization URL
@@ -49,13 +54,14 @@ serve(async (req) => {
         'user-read-email',
         'user-top-read',
         'user-library-read'
-      ]
+      ];
 
       const authUrl = new URL('https://accounts.spotify.com/authorize')
       authUrl.searchParams.append('client_id', SPOTIFY_CLIENT_ID)
       authUrl.searchParams.append('response_type', 'code')
       authUrl.searchParams.append('redirect_uri', redirectUri)
       authUrl.searchParams.append('scope', scopes.join(' '))
+      authUrl.searchParams.append('show_dialog', 'true') // Force showing the auth dialog
 
       console.log('Generated auth URL:', authUrl.toString())
 
