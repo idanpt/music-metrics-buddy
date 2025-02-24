@@ -43,7 +43,11 @@ serve(async (req) => {
       throw new Error('No origin provided');
     }
 
-    // Construct the exact redirect URI
+    // Determine if we're in preview mode
+    const isPreview = origin.includes('preview--');
+    console.log('Is preview mode:', isPreview);
+
+    // Construct the exact redirect URI using the preview URL if in preview mode
     const redirectUri = `${origin}/callback`;
     console.log('Using redirect URI:', redirectUri);
 
@@ -61,7 +65,7 @@ serve(async (req) => {
       authUrl.searchParams.append('response_type', 'code')
       authUrl.searchParams.append('redirect_uri', redirectUri)
       authUrl.searchParams.append('scope', scopes.join(' '))
-      authUrl.searchParams.append('show_dialog', 'true') // Force showing the auth dialog
+      authUrl.searchParams.append('show_dialog', 'true')
 
       console.log('Generated auth URL:', authUrl.toString())
 
